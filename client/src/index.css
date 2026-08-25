@@ -1,0 +1,272 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* Generous Event design system — see DESIGN.md for the full spec this maps to.
+   Color tokens live as CSS custom properties so the whole system can flip
+   between light/dark by toggling one `.dark` class (see ThemeContext) instead
+   of touching every component. "*-fixed"/"*-fixed-dim" roles are intentionally
+   identical in both themes — that's their purpose in this token system. */
+:root {
+  color-scheme: light;
+  --color-outline: #75777d;
+  --color-inverse-on-surface: #f0ede4;
+  --color-error-container: #ffdad6;
+  /* Muted warm stone, not white — still reads as neutral behind the maroon/
+     gold/crimson brand palette below without competing with it. */
+  --color-background: #ece7de;
+  --color-surface-dim: #d6cfc0;
+  --color-outline-variant: #cac2b0;
+  --color-error: #ba1a1a;
+  --color-on-surface-variant: #45474d;
+  --color-surface: #ece7de;
+  --color-surface-container-high: #ddd6c8;
+  --color-surface-container: #e6e0d4;
+  --color-on-error: #ffffff;
+  --color-inverse-surface: #2e3132;
+  --color-surface-variant: #ddd6c8;
+  --color-surface-container-low: #efeade;
+  --color-on-background: #191c1d;
+  --color-surface-container-lowest: #f4f0e7;
+  --color-surface-bright: #f4f0e7;
+  --color-on-error-container: #93000a;
+  --color-on-surface: #191c1d;
+  --color-surface-container-highest: #d3cab5;
+
+  /* Primary — deep maroon, from the logo's outer ring / wordmark. */
+  --color-primary: #4a1015;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #7a1f1f;
+  --color-on-primary-container: #ffd9d3;
+  --color-inverse-primary: #ffb3a8;
+  --color-surface-tint: #4a1015;
+  /* Desaturated dusty rose, not vivid pink — keeps badge-unpaid visually
+     distinct from the vivid-red badge-overdue (error-container) below. */
+  --color-primary-fixed: #e6d2ce;
+  --color-primary-fixed-dim: #c9a29b;
+  --color-on-primary-fixed: #2e0f0c;
+  --color-on-primary-fixed-variant: #55302a;
+
+  /* Secondary — warm gold/tan, from the logo's inner "C". Same role gold
+     already played in this system; just retuned toward the logo's tan. */
+  --color-secondary: #775a19;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #f0dfc0;
+  --color-on-secondary-container: #4a3a17;
+  --color-secondary-fixed: #f0dfc0;
+  --color-secondary-fixed-dim: #d3c2a2;
+  --color-on-secondary-fixed: #241a04;
+  --color-on-secondary-fixed-variant: #534023;
+
+  /* Tertiary — vivid crimson, from the logo's red ring / "EVENT" wordmark. */
+  --color-tertiary: #b91c28;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #ffdad4;
+  --color-on-tertiary-container: #7a0d16;
+  --color-tertiary-fixed: #ffdad4;
+  --color-tertiary-fixed-dim: #ffb3a8;
+  --color-on-tertiary-fixed: #410004;
+  --color-on-tertiary-fixed-variant: #8c1621;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-outline: #8f9099;
+  --color-inverse-on-surface: #2e3132;
+  --color-error-container: #93000a;
+  --color-background: #101216;
+  --color-surface-dim: #101216;
+  --color-outline-variant: #3f434b;
+  --color-error: #ffb4ab;
+  --color-on-surface-variant: #c5c6cd;
+  --color-surface: #101216;
+  --color-surface-container-high: #2c313a;
+  --color-surface-container: #242830;
+  --color-on-error: #690005;
+  --color-inverse-surface: #e3e2e6;
+  --color-surface-variant: #45474d;
+  --color-surface-container-low: #1f232a;
+  --color-on-background: #e3e2e6;
+  --color-surface-container-lowest: #1a1d24;
+  --color-surface-bright: #3a3f4a;
+  --color-on-error-container: #ffdad6;
+  --color-on-surface: #e3e2e6;
+  --color-surface-container-highest: #343944;
+
+  --color-primary: #ffb3a8;
+  --color-on-primary: #5c110c;
+  --color-primary-container: #6d1c14;
+  --color-on-primary-container: #ffdad4;
+  --color-inverse-primary: #4a1015;
+  --color-surface-tint: #ffb3a8;
+
+  --color-secondary: #d3c2a2;
+  --color-on-secondary: #3a2d0f;
+  --color-secondary-container: #534023;
+  --color-on-secondary-container: #f0dfc0;
+
+  --color-tertiary: #ffb3a8;
+  --color-on-tertiary: #68000d;
+  --color-tertiary-container: #8c1621;
+  --color-on-tertiary-container: #ffdad4;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  @apply bg-background text-on-background font-body-md antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Icon font */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  display: inline-flex;
+  vertical-align: middle;
+}
+.material-symbols-outlined.icon-filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-2.5 font-body-md text-body-md font-semibold transition-colors;
+  }
+  .btn-primary {
+    @apply bg-primary text-on-primary shadow-sm hover:bg-primary/90;
+  }
+  .btn-secondary {
+    @apply border border-secondary text-secondary hover:bg-secondary hover:text-on-secondary;
+  }
+  .btn-outline {
+    @apply border border-outline-variant text-on-surface-variant hover:bg-surface-container;
+  }
+  .btn-ghost {
+    @apply text-on-surface-variant hover:bg-surface-container;
+  }
+  .btn-danger {
+    @apply bg-error text-on-error hover:bg-error/90;
+  }
+  .btn:disabled {
+    @apply opacity-55 cursor-not-allowed hover:bg-none;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply bg-surface-container-lowest border border-outline-variant rounded-lg p-gutter shadow-[0_8px_24px_rgba(74,16,21,0.06)];
+  }
+  .glass-panel {
+    @apply bg-surface-container-lowest/85 backdrop-blur-md border-b border-outline-variant;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase;
+  }
+  .badge-paid {
+    @apply bg-secondary-fixed text-on-secondary-fixed;
+  }
+  .badge-unpaid {
+    @apply bg-primary-fixed text-on-primary-fixed;
+  }
+  .badge-overdue {
+    @apply bg-error-container text-on-error-container;
+  }
+  .badge-draft {
+    @apply bg-surface-container-high text-on-surface-variant;
+  }
+
+  /* Brand wordmark */
+  .brand-mark {
+    @apply font-headline-sm text-headline-sm text-primary;
+  }
+  .brand-mark .accent {
+    @apply text-secondary;
+  }
+
+  /* Shared page header, reused by every dashboard-style page */
+  .page-header {
+    @apply flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8;
+  }
+  .page-title {
+    @apply font-headline-md text-headline-md text-primary;
+  }
+  .page-sub {
+    @apply font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl;
+  }
+
+  /* Shared form field pattern */
+  .form-group {
+    @apply flex flex-col gap-2;
+  }
+  .form-label {
+    @apply font-label-caps text-label-caps text-on-surface-variant uppercase;
+  }
+  .form-input {
+    @apply w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all;
+  }
+
+  .auth-error {
+    @apply bg-error-container border border-error/30 text-on-error-container rounded-lg px-4 py-3 font-body-md text-sm;
+  }
+
+  /* Loading & empty states, reused across pages */
+  .loading-state {
+    @apply text-on-surface-variant font-body-md text-body-md py-10;
+  }
+  .empty-state {
+    @apply flex flex-col items-center text-center py-16 px-6 gap-3;
+  }
+  .empty-icon {
+    @apply text-on-surface-variant flex items-center justify-center;
+  }
+  .empty-title {
+    @apply font-headline-sm text-headline-sm text-primary;
+  }
+  .empty-desc {
+    @apply font-body-md text-body-md text-on-surface-variant max-w-xs;
+  }
+
+  /* Modal pattern, reused by ClientModal/ItemModal + inline confirm dialogs */
+  .modal-overlay {
+    @apply fixed inset-0 z-[100] bg-primary/30 backdrop-blur-sm flex items-center justify-center p-margin-mobile md:p-margin-desktop;
+  }
+  .modal {
+    @apply bg-surface-container-lowest border border-outline-variant/30 rounded-xl w-full max-w-[580px] max-h-[90vh] overflow-y-auto shadow-[0_8px_32px_rgba(74,16,21,0.12)];
+  }
+  .modal-header {
+    @apply flex items-center justify-between gap-4 px-5 md:px-8 py-5 md:py-6 border-b border-outline-variant/50;
+  }
+  .modal-title {
+    @apply font-headline-sm text-headline-sm text-primary;
+  }
+  .modal-close {
+    @apply text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-full p-2 transition-colors shrink-0;
+  }
+  .modal-actions {
+    @apply flex justify-end gap-3 px-5 md:px-8 py-4 md:py-5 border-t border-outline-variant/50 bg-surface-container-low rounded-b-xl;
+  }
+  .confirm-modal {
+    @apply max-w-[420px] p-gutter;
+  }
+  .confirm-text {
+    @apply font-body-md text-body-md text-on-surface-variant leading-relaxed my-3;
+  }
+
+  .table-scroll {
+    @apply overflow-x-auto;
+  }
+}
