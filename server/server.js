@@ -13,9 +13,22 @@ dotenv.config();
 
 const app = express();
 
+// CLIENT_URL is the deployed frontend's own origin (e.g. the Vercel domain) —
+// not this server's URL. Comma-separate multiple values (e.g. a Vercel
+// preview + production domain) if needed. localhost:5173 is always allowed
+// too, so local dev never breaks regardless of what CLIENT_URL is set to.
+const allowedOrigins = [
+  "http://localhost:5173",
+  ...(process.env.CLIENT_URL || "").split(",").map((o) => o.trim()).filter(Boolean),
+];
+
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: (origin, callback) => {
+    // No Origin header (server-to-server calls, curl, Postman) — allow.
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} is not allowed`));
+  },
   credentials: true,
 }));
 
