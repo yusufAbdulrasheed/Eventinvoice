@@ -1,7 +1,14 @@
 import axios from "axios";
 
+// In dev, "/api" is proxied to the local server (see vite.config.js). In
+// production the client and server are deployed separately (Vercel + Render),
+// so VITE_API_URL must point at the deployed server's origin.
+const baseURL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "/api";
+
 const api = axios.create({
-  baseURL: "/api",
+  baseURL,
   headers: { "Content-Type": "application/json" },
 });
 
