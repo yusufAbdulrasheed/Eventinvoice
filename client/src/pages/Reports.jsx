@@ -154,12 +154,12 @@ export default function Reports() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
         {REPORT_STATS.map((s) => (
-          <div className="card" key={s.label}>
+          <div className="card overflow-hidden" key={s.label}>
             <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${s.tone}`}>
               <Icon name={s.icon} size={22} filled />
             </div>
             <p className="font-label-caps text-label-caps text-on-surface-variant mb-1">{s.label}</p>
-            <h3 className="font-display-lg text-display-lg text-primary">{s.value}</h3>
+            <h3 className="font-headline-md text-headline-md text-primary truncate" title={s.value}>{s.value}</h3>
             <p className="font-body-md text-body-md text-on-surface-variant mt-1">{s.note}</p>
           </div>
         ))}

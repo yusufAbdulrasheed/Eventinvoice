@@ -6,6 +6,7 @@ import Icon from "./Icon";
 const TABS = [
   { id: "profile", label: "Profile", icon: "person" },
   { id: "billing", label: "Billing", icon: "credit_card" },
+  { id: "security", label: "Security", icon: "lock" },
   { id: "invoicing", label: "Invoicing", icon: "receipt_long" },
   { id: "notifications", label: "Notifications", icon: "notifications_active" },
 ];
@@ -13,7 +14,7 @@ const TABS = [
 export default function SettingsModal() {
   const navigate = useNavigate();
   const close = () => navigate(-1);
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, updateBankDetails, changePassword } = useAuth();
   const [tab, setTab] = useState("profile");
 
   const [form, setForm] = useState({ name: "", email: "" });
@@ -78,7 +79,7 @@ export default function SettingsModal() {
             <Icon name="close" size={20} />
           </button>
 
-          {tab === "profile" ? (
+          {tab === "profile" && (
             <>
               <div className="md:hidden mb-6">
                 <h2 className="font-headline-sm text-headline-sm text-primary mb-1">Profile Settings</h2>
@@ -139,13 +140,17 @@ export default function SettingsModal() {
                 </div>
               </form>
             </>
-          ) : (
+          )}
+
+          {tab === "billing" && <BillingTab onClose={close} />}
+          {tab === "security" && <SecurityTab onClose={close} />}
+
+          {(tab === "invoicing" || tab === "notifications") && (
             <div className="empty-state flex-1 justify-center">
               <div className="empty-icon"><Icon name={activeTab.icon} size={32} /></div>
               <h2 className="empty-title">{activeTab.label}</h2>
               <span className="badge badge-draft">Coming soon</span>
               <p className="empty-desc">
-                {tab === "billing" && "Plan management and payment methods will live here."}
                 {tab === "invoicing" && "Default tax rate, currency, and invoice numbering preferences will live here."}
                 {tab === "notifications" && "Email and reminder preferences will live here."}
               </p>
@@ -154,5 +159,213 @@ export default function SettingsModal() {
         </div>
       </div>
     </div>
+  );
+}
+
+function BillingTab({ onClose }) {
+  const { user, updateBankDetails } = useAuth();
+  const [form, setForm] = useState({ bankName: "", accountName: "", accountNumber: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user?.bankDetails) {
+      setForm({
+        bankName: user.bankDetails.bankName || "",
+        accountName: user.bankDetails.accountName || "",
+        accountNumber: user.bankDetails.accountNumber || "",
+      });
+    }
+  }, [user]);
+
+  const dirty = user?.bankDetails && (
+    form.bankName !== (user.bankDetails.bankName || "") ||
+    form.accountName !== (user.bankDetails.accountName || "") ||
+    form.accountNumber !== (user.bankDetails.accountNumber || "")
+  );
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
+    setSaving(true);
+    try {
+      await updateBankDetails(form);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2500);
+    } catch (err) {
+      setError(err.response?.data?.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="mb-6">
+        <h2 className="font-headline-sm text-headline-sm text-primary mb-1">Billing Details</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant">
+          These bank details are printed on every invoice you send, so clients know where to pay.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
+        {error && <div className="auth-error">{error}</div>}
+        {success && (
+          <div className="flex items-center gap-2 text-secondary font-body-md text-body-md">
+            <Icon name="check_circle" size={16} filled />
+            Saved
+          </div>
+        )}
+
+        <div className="form-group">
+          <label className="form-label" htmlFor="bankName">Bank Name</label>
+          <input
+            id="bankName"
+            className="form-input"
+            placeholder="e.g. Guaranty Trust Bank"
+            value={form.bankName}
+            onChange={(e) => setForm((p) => ({ ...p, bankName: e.target.value }))}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="form-group">
+            <label className="form-label" htmlFor="accountName">Account Name</label>
+            <input
+              id="accountName"
+              className="form-input"
+              placeholder="e.g. Generous Event Ltd"
+              value={form.accountName}
+              onChange={(e) => setForm((p) => ({ ...p, accountName: e.target.value }))}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="accountNumber">Account Number</label>
+            <input
+              id="accountNumber"
+              className="form-input"
+              placeholder="0123456789"
+              inputMode="numeric"
+              value={form.accountNumber}
+              onChange={(e) => setForm((p) => ({ ...p, accountNumber: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="mt-auto pt-8 flex justify-end gap-4">
+          <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+function SecurityTab({ onClose }) {
+  const { changePassword } = useAuth();
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (e) =>
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
+
+    if (form.newPassword !== form.confirmPassword) {
+      return setError("New passwords don't match");
+    }
+    if (form.newPassword.length < 6) {
+      return setError("New password must be at least 6 characters");
+    }
+
+    setSaving(true);
+    try {
+      await changePassword(form.currentPassword, form.newPassword);
+      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2500);
+    } catch (err) {
+      setError(err.response?.data?.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="mb-6">
+        <h2 className="font-headline-sm text-headline-sm text-primary mb-1">Change Password</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant">Choose a new password for your account.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
+        {error && <div className="auth-error">{error}</div>}
+        {success && (
+          <div className="flex items-center gap-2 text-secondary font-body-md text-body-md">
+            <Icon name="check_circle" size={16} filled />
+            Password updated
+          </div>
+        )}
+
+        <div className="form-group">
+          <label className="form-label" htmlFor="currentPassword">Current Password</label>
+          <input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            className="form-input"
+            value={form.currentPassword}
+            onChange={handleChange}
+            autoComplete="current-password"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="form-group">
+            <label className="form-label" htmlFor="newPassword">New Password</label>
+            <input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              className="form-input"
+              value={form.newPassword}
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="confirmPassword">Confirm New Password</label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              className="form-input"
+              value={form.confirmPassword}
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="mt-auto pt-8 flex justify-end gap-4">
+          <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving…" : "Update Password"}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }

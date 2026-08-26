@@ -208,7 +208,15 @@ export default function InvoicePreview() {
             <div className="mt-16 pt-8 border-t border-outline-variant/30 text-sm text-on-surface-variant grid grid-cols-1 sm:grid-cols-2 gap-8">
               <div>
                 <h5 className="font-bold text-primary mb-2">Payment Details</h5>
-                <p>Share your bank details or payment link with the client directly — this app doesn't store banking info.</p>
+                {user?.bankDetails?.accountNumber ? (
+                  <div className="space-y-0.5">
+                    <p>{user.bankDetails.bankName}</p>
+                    <p>{user.bankDetails.accountName}</p>
+                    <p>{user.bankDetails.accountNumber}</p>
+                  </div>
+                ) : (
+                  <p>Add your bank details in Settings → Billing so they appear here.</p>
+                )}
               </div>
               <div>
                 <h5 className="font-bold text-primary mb-2">Notes</h5>

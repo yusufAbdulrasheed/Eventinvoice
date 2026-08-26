@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { getPublicInvoice, createCheckoutSession } from "../utils/publicApi";
 import { formatCurrency, formatDate, STATUS_LABELS, STATUS_CLASS } from "../utils/format";
@@ -21,6 +21,8 @@ export default function PublicInvoice() {
   const [paying, setPaying]     = useState(false);
   const [error, setError]       = useState("");
   const [confirming, setConfirming] = useState(returningFromCheckout);
+  const [downloading, setDownloading] = useState(false);
+  const paperRef = useRef(null);
 
   const fetchInvoice = useCallback(async () => {
     try {
@@ -52,6 +54,28 @@ export default function PublicInvoice() {
 
     return () => clearInterval(interval);
   }, [returningFromCheckout, fetchInvoice]);
+
+  const handleDownloadPdf = async () => {
+    if (!paperRef.current) return;
+    setDownloading(true);
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(paperRef.current, { scale: 2, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
+      pdf.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+    } catch {
+      setError("Couldn't generate the PDF. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const handlePay = async () => {
     setError("");
@@ -93,16 +117,22 @@ export default function PublicInvoice() {
       </header>
 
       <div className="max-w-container-max mx-auto p-margin-mobile md:p-margin-desktop grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
-        <div className="card overflow-hidden relative">
+        <div className="card overflow-hidden relative" ref={paperRef}>
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-secondary" />
-          <div className="flex justify-between items-start mb-6 mt-2">
+          <div className="flex flex-wrap justify-between items-start gap-4 mb-6 mt-2">
             <div>
               <h1 className="font-headline-sm text-headline-sm text-primary">Invoice {invoice.invoiceNumber}</h1>
               <p className="font-body-md text-body-md text-on-surface-variant mt-1">
                 Issued {formatDate(invoice.issueDate)} · Due {formatDate(invoice.dueDate)}
               </p>
             </div>
-            <span className={`badge ${STATUS_CLASS[invoice.status]}`}>{STATUS_LABELS[invoice.status]}</span>
+            <div className="flex flex-col items-end gap-2">
+              <span className={`badge ${STATUS_CLASS[invoice.status]}`}>{STATUS_LABELS[invoice.status]}</span>
+              <button className="btn btn-outline py-1.5! px-3! text-sm" onClick={handleDownloadPdf} disabled={downloading} data-html2canvas-ignore="true">
+                <Icon name="download" size={16} />
+                {downloading ? "Preparing…" : "Download PDF"}
+              </button>
+            </div>
           </div>
 
           {invoice.status === "paid" && (
@@ -177,6 +207,15 @@ export default function PublicInvoice() {
               <div className="flex justify-between font-headline-sm text-headline-sm text-primary pt-1"><span>Total</span><span>{formatCurrency(invoice.total, invoice.currency)}</span></div>
             </div>
           </div>
+
+          {invoice.from?.bankDetails?.accountNumber && (
+            <div className="pt-6 border-t border-outline-variant">
+              <span className="font-label-caps text-label-caps text-on-surface-variant block mb-1">Pay by Bank Transfer</span>
+              <p className="font-body-md text-body-md text-on-surface-variant">{invoice.from.bankDetails.bankName}</p>
+              <p className="font-body-md text-body-md text-on-surface-variant">{invoice.from.bankDetails.accountName}</p>
+              <p className="font-body-md text-body-md text-on-surface-variant">{invoice.from.bankDetails.accountNumber}</p>
+            </div>
+          )}
 
           {invoice.notes && (
             <div className="pt-6 border-t border-outline-variant">

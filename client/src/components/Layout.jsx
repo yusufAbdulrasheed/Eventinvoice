@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import Footer from "./Footer";
 
 const TITLES = [
   { match: /^\/dashboard/, title: "Dashboard" },
@@ -34,10 +35,11 @@ export default function Layout() {
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title={pageTitle(location.pathname)} onMenuClick={() => setNavOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop">
-          <div className="max-w-container-max mx-auto w-full">
+        <main className="flex-1 overflow-y-auto p-margin-mobile md:p-margin-desktop flex flex-col">
+          <div className="max-w-container-max mx-auto w-full flex-1">
             <Outlet />
           </div>
+          <Footer />
         </main>
       </div>
     </div>
