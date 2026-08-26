@@ -1,9 +1,10 @@
 import Item from "../models/Item.js";
 
-// GET /api/items — list all inventory items for the logged-in user
+// GET /api/items — every item is shared across all accounts; `user` on the
+// record is provenance ("who added this"), not an access filter.
 export const getItems = async (req, res) => {
   try {
-    const items = await Item.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const items = await Item.find({}).sort({ createdAt: -1 });
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -13,7 +14,7 @@ export const getItems = async (req, res) => {
 // GET /api/items/:id
 export const getItemById = async (req, res) => {
   try {
-    const item = await Item.findOne({ _id: req.params.id, user: req.user._id });
+    const item = await Item.findOne({ _id: req.params.id });
     if (!item) return res.status(404).json({ message: "Item not found" });
     res.json(item);
   } catch (error) {
@@ -57,7 +58,7 @@ export const createItem = async (req, res) => {
 // PUT /api/items/:id
 export const updateItem = async (req, res) => {
   try {
-    const item = await Item.findOne({ _id: req.params.id, user: req.user._id });
+    const item = await Item.findOne({ _id: req.params.id });
     if (!item) return res.status(404).json({ message: "Item not found" });
 
     const fields = ["name", "category", "imageUrl", "totalStock", "availableStock", "dailyRate", "maintenanceFlag", "notes"];
@@ -75,7 +76,7 @@ export const updateItem = async (req, res) => {
 // DELETE /api/items/:id
 export const deleteItem = async (req, res) => {
   try {
-    const item = await Item.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const item = await Item.findOneAndDelete({ _id: req.params.id });
     if (!item) return res.status(404).json({ message: "Item not found" });
     res.json({ message: "Item deleted" });
   } catch (error) {

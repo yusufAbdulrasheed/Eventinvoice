@@ -3,11 +3,14 @@ import Counter from "../models/Counter.js";
 import Client from "../models/Clients.js";
 import { sendMail, isMailerConfigured } from "../config/mailer.js";
 
-// Helper: generate next invoice number for this user// Uses an atomic per-user counter so numbers are unique and never reused,
-// even under concurrent requests or after an earlier invoice is deleted.
-const getNextInvoiceNumber = async (userId) => {
+// Helper: generate the next invoice number. Invoices are shared across every
+// account, so this is one global counter (not per-user) — otherwise two
+// different accounts could each hand out "INV-0001" and collide in the same
+// shared list. Atomic increment keeps numbers unique even under concurrent
+// requests or after an earlier invoice is deleted.
+const getNextInvoiceNumber = async () => {
   const counter = await Counter.findByIdAndUpdate(
-    String(userId),
+    "global",
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
@@ -22,10 +25,11 @@ const computeTotals = (lineItems, taxRate = 0) => {
   return { subtotal: parseFloat(subtotal.toFixed(2)), taxAmount, total };
 };
 
-// GET /api/invoices
+// GET /api/invoices — every invoice is shared across all accounts; `user`
+// on the record is provenance ("who created this"), not an access filter.
 export const getInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ user: req.user._id })
+    const invoices = await Invoice.find({})
       .populate("client", "name email company")
       .sort({ createdAt: -1 });
     res.json(invoices);
@@ -37,7 +41,7 @@ export const getInvoices = async (req, res) => {
 // GET /api/invoices/:id
 export const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id })
+    const invoice = await Invoice.findOne({ _id: req.params.id })
       .populate("client");
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
     res.json(invoice);
@@ -55,10 +59,8 @@ export const createInvoice = async (req, res) => {
   }
 
   try {
-    // Client must belong to the requesting user — otherwise this would let
-    // any authenticated user attach (and later read back via populate)
-    // another tenant's client record just by guessing/passing its id.
-    const client = await Client.findOne({ _id: clientId, user: req.user._id });
+    // Clients are shared across all accounts — just confirm it exists.
+    const client = await Client.findOne({ _id: clientId });
     if (!client) {
       return res.status(404).json({ message: "Client not found" });
     }
@@ -70,7 +72,7 @@ export const createInvoice = async (req, res) => {
     }));
 
     const { subtotal, taxAmount, total } = computeTotals(items, taxRate || 0);
-    const invoiceNumber = await getNextInvoiceNumber(req.user._id);
+    const invoiceNumber = await getNextInvoiceNumber();
 
     const invoice = await Invoice.create({
       user: req.user._id,
@@ -98,13 +100,13 @@ export const createInvoice = async (req, res) => {
 // PUT /api/invoices/:id
 export const updateInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    const invoice = await Invoice.findOne({ _id: req.params.id });
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
 
     const { clientId, issueDate, dueDate, lineItems, taxRate, notes, currency, status } = req.body;
 
     if (clientId) {
-      const client = await Client.findOne({ _id: clientId, user: req.user._id });
+      const client = await Client.findOne({ _id: clientId });
       if (!client) {
         return res.status(404).json({ message: "Client not found" });
       }
@@ -141,7 +143,7 @@ export const updateInvoice = async (req, res) => {
 // DELETE /api/invoices/:id
 export const deleteInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const invoice = await Invoice.findOneAndDelete({ _id: req.params.id });
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
     res.json({ message: "Invoice deleted" });
   } catch (error) {
@@ -164,7 +166,7 @@ export const updateStatus = async (req, res) => {
     const update = status === "paid" ? { status, paidAt: new Date() } : { status };
 
     const invoice = await Invoice.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.id },
       update,
       { new: true }
     ).populate("client", "name email company");
@@ -177,8 +179,8 @@ export const updateStatus = async (req, res) => {
 };
 
 // POST /api/invoices/:id/send — emails the invoice to the client on file.
-// Owner-scoped. Requires SMTP_HOST/SMTP_USER/SMTP_PASS to be set in
-// server/.env — returns 503 with a clear message if they aren't.
+// Requires SMTP_HOST/SMTP_USER/SMTP_PASS to be set in server/.env — returns
+// 503 with a clear message if they aren't.
 export const sendInvoiceEmail = async (req, res) => {
   if (!isMailerConfigured()) {
     return res.status(503).json({
@@ -187,7 +189,7 @@ export const sendInvoiceEmail = async (req, res) => {
   }
 
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id }).populate("client");
+    const invoice = await Invoice.findOne({ _id: req.params.id }).populate("client");
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
     if (!invoice.client?.email) {
       return res.status(400).json({ message: "This client has no email address on file" });
@@ -228,12 +230,12 @@ export const sendInvoiceEmail = async (req, res) => {
   }
 };
 
-// GET /api/invoices/:id/payment-link — owner-scoped. Older invoices predate
-// the publicToken field, so this backfills one (via the model's pre-save
-// hook) on first request instead of needing a migration script.
+// GET /api/invoices/:id/payment-link — older invoices predate the
+// publicToken field, so this backfills one (via the model's pre-save hook)
+// on first request instead of needing a migration script.
 export const getPaymentLink = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, user: req.user._id });
+    const invoice = await Invoice.findOne({ _id: req.params.id });
     if (!invoice) return res.status(404).json({ message: "Invoice not found" });
 
     if (!invoice.publicToken) {
