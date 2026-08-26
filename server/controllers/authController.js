@@ -29,6 +29,7 @@ export const register = async (req, res) => {
       name: user.name,
       email: user.email,
       plan: user.plan,
+      bankDetails: user.bankDetails,
       token: generateToken(user._id),
     });
   } catch (error) {
@@ -59,6 +60,7 @@ export const login = async (req, res) => {
       name: user.name,
       email: user.email,
       plan: user.plan,
+      bankDetails: user.bankDetails,
       token: generateToken(user._id),
     });
   } catch (error) {

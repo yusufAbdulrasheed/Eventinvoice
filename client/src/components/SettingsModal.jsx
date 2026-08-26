@@ -26,8 +26,6 @@ export default function SettingsModal() {
     if (user) setForm({ name: user.name || "", email: user.email || "" });
   }, [user]);
 
-  const dirty = user && (form.name !== user.name || form.email !== user.email);
-
   const handleSave = async (e) => {
     e.preventDefault();
     setError("");
@@ -134,7 +132,7 @@ export default function SettingsModal() {
 
                 <div className="mt-auto pt-8 flex justify-end gap-4">
                   <button type="button" className="btn btn-outline" onClick={close}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
                     {saving ? "Saving…" : "Save Changes"}
                   </button>
                 </div>
@@ -178,12 +176,6 @@ function BillingTab({ onClose }) {
       });
     }
   }, [user]);
-
-  const dirty = user?.bankDetails && (
-    form.bankName !== (user.bankDetails.bankName || "") ||
-    form.accountName !== (user.bankDetails.accountName || "") ||
-    form.accountNumber !== (user.bankDetails.accountNumber || "")
-  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -256,7 +248,7 @@ function BillingTab({ onClose }) {
 
         <div className="mt-auto pt-8 flex justify-end gap-4">
           <button type="button" className="btn btn-outline" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={!dirty || saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </div>
