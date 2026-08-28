@@ -60,7 +60,7 @@ export default function PublicInvoice() {
     setDownloading(true);
     try {
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas"),
+        import("html2canvas-pro"),
         import("jspdf"),
       ]);
       const canvas = await html2canvas(paperRef.current, { scale: 2, backgroundColor: "#ffffff" });
