@@ -57,18 +57,29 @@ Client runs on `http://localhost:5173`
 
 | Service  | What it hosts |
 |----------|--------------|
-| [Render](https://render.com) | Express server (free tier) |
-| [Vercel](https://vercel.com) | React client (free tier) |
+| [Netlify](https://netlify.com) | React client + Express API (as a Netlify Function) — one site |
 | [MongoDB Atlas](https://mongodb.com/atlas) | Database (free 512MB) |
 
-**Deploy server to Render:**
-- New Web Service → connect your repo → Root Dir: `server`
-- Build: `npm install` | Start: `npm start`
-- Add environment variables from `.env`
+Client and API are deployed together as a single Netlify site — see
+[`netlify.toml`](netlify.toml). The API runs at `server/netlify/functions/api.mjs`
+(the same Express app as `server/app.js`, wrapped for a Netlify Function) and
+is reachable at `/api/*` on the site's own domain, so the client's default
+same-origin `/api` base URL (see `client/src/utils/api.js`) just works — no
+separate backend URL to configure.
 
-**Deploy client to Vercel:**
-- Import repo → Root Dir: `client`
-- Add env var: `VITE_API_URL=https://your-render-url.onrender.com`
+**Deploy to Netlify:**
+- New site from Git → connect your repo (build settings come from `netlify.toml`, no manual configuration needed)
+- Add these environment variables in Site configuration → Environment variables:
+  - `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL` (this site's own Netlify URL, e.g. `https://your-site.netlify.app`, or a custom domain once attached)
+  - `ADMIN_EMAILS`
+  - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (optional — leave unset to keep "Send to Client" disabled)
+  - `PAYSTACK_SECRET_KEY` (optional — leave unset to keep the Paystack webhook disabled)
+- Leave `VITE_API_URL` unset (see `client/.env.production`) unless you ever split the client and API back across two separate origins.
+
+For **local development**, `client/` and `server/` still run as two separate
+processes (`npm run dev` in each) exactly as described above — Netlify
+Functions only come into play in the deployed build. To test the Netlify
+build/function locally before pushing, use the [Netlify CLI](https://docs.netlify.com/cli/get-started/)'s `netlify dev` from the repo root.
 
 ---
 

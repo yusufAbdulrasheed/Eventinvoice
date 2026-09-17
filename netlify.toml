@@ -1,0 +1,21 @@
+[build]
+  # Two independent package.json's (client/, server/) — install both, then
+  # build only the client. The server isn't "built"; its source is bundled
+  # directly from server/netlify/functions by the functions bundler below,
+  # using the dependencies installed into server/node_modules here.
+  command = "npm install --prefix client && npm install --prefix server && npm run build --prefix client"
+  publish = "client/dist"
+  functions = "server/netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Client-side routing (React Router) — any path not claimed by a function or
+# an existing static file falls through to index.html. The API function
+# declares its own routing via `export const config = { path: "/api/*" }`
+# in server/netlify/functions/api.mjs, so it's matched before this catch-all
+# and doesn't need a redirect rule of its own here.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
