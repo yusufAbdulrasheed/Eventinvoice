@@ -1,8 +1,10 @@
 import axios from "axios";
 
 // In dev, "/api" is proxied to the local server (see vite.config.js). In
-// production the client and server are deployed separately (Vercel + Render),
-// so VITE_API_URL must point at the deployed server's origin.
+// production (Netlify), the client and API share one origin — the API runs
+// as a Netlify Function at /api/* — so this falls back to the relative
+// "/api" path. VITE_API_URL is only needed if the client and server are
+// ever split across two separate origins again.
 const baseURL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api`
   : "/api";
